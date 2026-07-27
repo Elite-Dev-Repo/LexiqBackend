@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import QuestionDeckListView, QuestionDeckDetailView, QuestionListCreateView, QuestionDetailView, QuestionOptionListView, QuestionOptionDetailView
+from .views import QuestionDeckListView, QuestionDeckDetailView, QuestionListCreateView, QuestionDetailView, QuestionOptionListView, QuestionOptionDetailView, ListQuestionDeckView
 
 urlpatterns = [
+    path('decks-list/', ListQuestionDeckView.as_view(), name='list-question-deck'),
     path('decks/', QuestionDeckListView.as_view(), name='question-deck-list'),
     path('decks/<int:pk>/', QuestionDeckDetailView.as_view(), name='question-deck-detail'),
     path('questions/', QuestionListCreateView.as_view(), name='question-list'),

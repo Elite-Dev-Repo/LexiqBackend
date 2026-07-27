@@ -3,11 +3,16 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminOrReadOnly
 from .models import QuestionDeck, Question, QuestionOption
-from .serializers import QuestionDeckSerializer, QuestionSerializer, QuestionOptionSerializer
+from .serializers import QuestionDeckSerializer, QuestionSerializer, QuestionOptionSerializer, QuestionDeckListSerializer
 
 class QuestionDeckListView(generics.ListAPIView):
     queryset = QuestionDeck.objects.prefetch_related('questions').all()
     serializer_class = QuestionDeckSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+class ListQuestionDeckView(generics.ListAPIView):
+    queryset = QuestionDeck.objects.all()
+    serializer_class = QuestionDeckListSerializer
     permission_classes = [IsAdminOrReadOnly]
 
 class QuestionDeckDetailView(generics.RetrieveAPIView):

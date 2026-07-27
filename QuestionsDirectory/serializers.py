@@ -26,3 +26,8 @@ class QuestionDeckSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionDeck
         fields = ['id', 'name', 'description', 'questions']
+
+class QuestionDeckListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionDeck
+        fields = ['id', 'name', 'description']
