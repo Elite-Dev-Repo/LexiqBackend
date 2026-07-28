@@ -20,6 +20,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.room_code = None
+        await self.accept()
+
         query = self.scope['query_string'].decode()
         token = None
         for param in query.split('&'):
@@ -30,9 +32,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
         self.user = await self.authenticate_user(token)
         if not self.user:
             await self.close(code=4001)
-            return
-
-        await self.accept()
 
     async def disconnect(self, close_code):
         if self.room_code:
