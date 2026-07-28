@@ -19,6 +19,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
     host_disconnect_timers = {}
 
     async def connect(self):
+        self.room_code = None
         query = self.scope['query_string'].decode()
         token = None
         for param in query.split('&'):
@@ -31,7 +32,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
 
-        self.room_code = None
         await self.accept()
 
     async def disconnect(self, close_code):
