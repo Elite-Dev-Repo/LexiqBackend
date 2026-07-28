@@ -16,6 +16,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
     active_games = {}
     room_locks = {}
     global_lock = asyncio.Lock()
+    host_disconnect_timers = {}
 
     async def connect(self):
         query = self.scope['query_string'].decode()
@@ -36,6 +37,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if self.room_code:
             code = self.room_code
+            is_host = await self.is_user_host(self.user, code)
             await self.channel_layer.group_discard(f'room_{code}', self.channel_name)
             members = await self.get_room_members(code)
             await self.channel_layer.group_send(
@@ -49,6 +51,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
                     },
                 }
             )
+            if is_host:
+                await self.start_host_disconnect_timer(code)
             self.room_code = None
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -149,6 +153,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
         if not room_data:
             await self.send_error('Invalid or unavailable room code')
             return
+
+        if room_data.get('is_host'):
+            await self.cancel_host_disconnect_timer(code)
 
         self.room_code = code
         await self.channel_layer.group_add(
@@ -462,6 +469,41 @@ class RoomConsumer(AsyncWebsocketConsumer):
         self.active_games.pop(code, None)
         self.room_locks.pop(code, None)
 
+    # ---- Host Disconnect Timer ----
+
+    async def start_host_disconnect_timer(self, room_code):
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(self._host_disconnect_timeout(room_code))
+        self.__class__.host_disconnect_timers[room_code] = task
+
+    async def _host_disconnect_timeout(self, room_code):
+        try:
+            await asyncio.sleep(120)
+            if room_code not in self.__class__.host_disconnect_timers:
+                return
+            await self.channel_layer.group_send(
+                f'room_{room_code}',
+                {
+                    'type': 'room_broadcast',
+                    'message': {
+                        'type': 'room_deleted',
+                        'reason': 'Host disconnected',
+                    },
+                }
+            )
+            self.__class__.active_games.pop(room_code, None)
+            self.__class__.room_locks.pop(room_code, None)
+            await self.delete_room(room_code)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.__class__.host_disconnect_timers.pop(room_code, None)
+
+    async def cancel_host_disconnect_timer(self, room_code):
+        task = self.__class__.host_disconnect_timers.pop(room_code, None)
+        if task:
+            task.cancel()
+
     # ---- DB Helpers ----
 
     @database_sync_to_async
@@ -605,6 +647,18 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def cleanup_empty_room(self, code):
+        Room.objects.filter(code=code).delete()
+
+    @database_sync_to_async
+    def is_user_host(self, user, room_code):
+        try:
+            room = Room.objects.get(code=room_code)
+            return room.host == user
+        except Room.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def delete_room(self, code):
         Room.objects.filter(code=code).delete()
 
     @database_sync_to_async
