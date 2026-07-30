@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'QuestionsDirectory',
     'Rooms',
+    'MainChat',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
