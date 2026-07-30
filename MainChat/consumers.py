@@ -26,7 +26,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         username = data['username']
 
         # Save message to database
-        Message.objects.create(user=username, message=message)
+        await database_sync_to_async(Message.objects.create)(user=username, message=message)
 
         # Broadcast message to room
         await self.channel_layer.group_send(
