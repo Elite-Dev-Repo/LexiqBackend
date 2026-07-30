@@ -11,6 +11,7 @@ class GlobalChat(models.Model):
         return self.name
 
 class Message(models.Model):
+    chat = models.ForeignKey(GlobalChat, on_delete=models.CASCADE, related_name='messages', default=1)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)

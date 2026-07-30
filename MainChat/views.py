@@ -8,11 +8,14 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 # Create your views here.
 
 class GlobalChatView(generics.ListAPIView):
-    queryset = GlobalChat.objects.all()
+    queryset = GlobalChat.objects.prefetch_related('messages').all()
     serializer_class = GlobalChatSerializer
     permission_classes = [IsAuthenticated]
 
-class MessageView(generics.ListAPIView):
+class MessageView(generics.ListCreateAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
